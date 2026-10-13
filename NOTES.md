@@ -65,7 +65,7 @@ Tidak perlu Nomenclature, Practical Implications, Data Availability terpisah (di
   - [x] Set DATA_PATH dan nama kolom di litho_setup.py; jalankan pada data asli (preprocessing RINENG part1 sudah masuk part1_data.py).
   - [x] Samakan LGBM_PARAMS/early stopping dengan RINENG [FINAL]: n_estimators=5000, lr=0.05, num_leaves=31, min_child_samples=20, subsample=0.8 (tanpa subsample_freq -> bagging tidak aktif, sama seperti RINENG), colsample_bytree=0.8, reg_alpha=0.1, reg_lambda=0.1, max_depth=-1, early stopping 50, validation = train_test_split acak 0.2 (bukan per well). MICE max_iter=15.
   - [x] RD tidak masuk LOG10_COLS (pakai config lama) [FINAL].
-  - [ ] Cek mask_stats.csv (proporsi k) dan sanity check hasil per log.
+  - [x] Cek mask_stats.csv (proporsi k) dan sanity check hasil per log -> part5_paper_assets.py (results/paper/).
   - [ ] Draft Introduction (EN), lalu Methodology, Results, Discussion.
 
 ## 8. Konvensi kerja

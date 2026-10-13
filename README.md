@@ -6,7 +6,7 @@ Methods: Mean, MICE, LightGBM (one regressor per target). Validation: leave-one-
 ## Setup
 1. Put the raw logs in `data/data_raw.xlsx` (one sheet per well, sheet name = well).
 2. Edit column names / LightGBM params in `litho_setup.py`.
-3. `pip install -r requirements.txt && python run_experiment.py`
+3. `pip install -r requirements.txt && python run_experiment.py && python part5_paper_assets.py`
 
 ## Preprocessing (`part1_data.py`, same as RINENG part1)
 Raw sheets -> listwise deletion per well (all logs + lithology) -> keep lithology classes with
@@ -28,3 +28,12 @@ rounded to 10; = 130) and present in >= 2 wells. Result: 6,811 rows, 6 wells, 6 
 - `fig_parity_LGBM.png`
 
 Metrics are pooled from raw residuals across folds (not averaged per fold); nRMSE = RMSE / dataset range (original units).
+
+## Paper assets (`results/paper/`, from `part5_paper_assets.py`)
+All sheets also in `paper_assets.xlsx`.
+- `table_I_dataset.csv`: per well depth range, N, samples per lithology (Table I)
+- `raw_missing.csv`, `raw_comissing.csv`: raw missing rate per log and co-missing matrix (Introduction; DTCO->DTSM 99.92%)
+- `mask_k_share.csv`, `mask_cells.csv`: share of rows with k co-missing logs vs independent masking (IV.A)
+- `table_II_formatted.csv`, `table_III_formatted.csv`: Tables II/III as "mean ± sd"
+- `stability.csv`, `per_well_formatted.csv`: spread across wells and seeds (IV.D)
+- `fig_pipeline_draft.png`: draft of Fig. 1
