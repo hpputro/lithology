@@ -24,8 +24,13 @@ MASK_LEVEL = 0.30    # fraction of rows (per litho) masked, drawn from tails
 MASK_SEEDS = [0, 1, 2]
 TEST_SEED_OFFSET = 10_000   # test-well mask uses seed + offset (independent of train)
 
-# LightGBM (EDIT to match RINENG config)
-LGBM_PARAMS = dict(n_estimators=1000, learning_rate=0.05, num_leaves=31,
-                   subsample=0.8, subsample_freq=1, colsample_bytree=0.8,
-                   n_jobs=-1, verbose=-1)
+# LightGBM, same as RINENG handle_lgbm. subsample_freq is not set (default 0), as in RINENG,
+# so LightGBM does not actually apply subsample=0.8 (bagging off).
+LGBM_PARAMS = dict(n_estimators=5000, learning_rate=0.05, num_leaves=31, max_depth=-1,
+                   min_child_samples=20, subsample=0.8, colsample_bytree=0.8,
+                   reg_alpha=0.1, reg_lambda=0.1, n_jobs=-1, verbose=-1)
 EARLY_STOP = 50
+VAL_SIZE = 0.2       # random train_test_split (not grouped by well), as in RINENG
+
+# MICE (IterativeImputer, default BayesianRidge), as in RINENG
+MICE_MAX_ITER = 15

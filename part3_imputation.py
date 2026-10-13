@@ -30,7 +30,7 @@ class MICEImputer:
         self.seed = seed
 
     def fit(self, X):
-        self.imp = IterativeImputer(max_iter=10, random_state=self.seed, sample_posterior=False,
+        self.imp = IterativeImputer(max_iter=MICE_MAX_ITER, random_state=self.seed, sample_posterior=False,
                                     min_value=np.nanmin(X, axis=0), max_value=np.nanmax(X, axis=0))
         self.imp.fit(X)
         return self
@@ -50,7 +50,7 @@ class LGBMImputer:
             feats = [c for c in range(X.shape[1]) if c != j]
             obs = ~np.isnan(X[:, j])
             Xtr, Xva, ytr, yva = train_test_split(X[obs][:, feats], X[obs, j],
-                                                  test_size=0.1, random_state=self.seed)
+                                                  test_size=VAL_SIZE, random_state=self.seed)
             m = LGBMRegressor(**LGBM_PARAMS, random_state=self.seed)
             m.fit(Xtr, ytr, eval_set=[(Xva, yva)],
                   callbacks=[lgb.early_stopping(EARLY_STOP, verbose=False)])
