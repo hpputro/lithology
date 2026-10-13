@@ -16,6 +16,8 @@ LOG10_COLS = ["RS"]                        # log10 before MinMax, 10**x on inver
 # Preprocessing (same as RINENG part1): listwise deletion -> elbow class filter
 MIN_WELLS = 2        # a lithology class must occur in at least this many wells
 ELBOW_STEP = 10      # elbow threshold = midpoint of the largest drop, rounded to this step
+LITHO_ORDER = ["Claystone", "Siltstone", "Silty Claystone", "Sandstone", "Volcanic",
+               "Calcareous Claystone"]   # class order/colors in figures (as RINENG)
 EXPECTED_SHAPE = (6811, 6, 6)   # (rows, wells, classes) after filtering; None to skip check
 
 # MNAR self-masking (componentwise, per lithology, per log)

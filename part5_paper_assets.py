@@ -1,5 +1,5 @@
 """Paper tables (NOTES section 5) from the raw data and from results/ of run_experiment.py.
-Run after run_experiment.py. Output: results/paper/*.csv + paper_assets.xlsx + fig_pipeline_draft.png."""
+Run after run_experiment.py. Output: results/paper/*.csv + paper_assets.xlsx + fig_pipeline_draft.png + fig_well_log_track.png."""
 import math
 import numpy as np
 import pandas as pd
@@ -123,6 +123,55 @@ def per_well_fmt(pw):
     return out[["method", "log", "Well", "nRMSE", "R2"]].rename(columns={"method": "Method", "log": "Log"})
 
 
+# ---------- data figure (as RINENG part1) ----------
+TRACK_LOGS = ["GR", "RHOB", "NPHI", "DTCO", "DTSM", "RS", "RD"]
+
+
+def well_log_track(df, path):
+    """All wells stacked top to bottom (each sorted by depth), one panel per log + lithology.
+    Vertical axis = sample order (rows removed by listwise deletion are skipped), not depth."""
+    d = df.sort_values([WELL_COL, DEPTH_COL]).reset_index(drop=True)
+    n = len(d)
+    idx = np.arange(n)
+    starts = d[WELL_COL].ne(d[WELL_COL].shift()).to_numpy().nonzero()[0]
+    bounds = list(starts) + [n]
+    mids = [(bounds[i] + bounds[i + 1]) / 2 for i in range(len(starts))]
+
+    fig, axes = plt.subplots(1, len(TRACK_LOGS) + 1, figsize=(2.2 * (len(TRACK_LOGS) + 1), 14), sharey=True)
+    for ax, col in zip(axes[:-1], TRACK_LOGS):
+        for s, e in zip(bounds[:-1], bounds[1:]):          # one line per well, no joins
+            ax.plot(d[col].iloc[s:e], idx[s:e], lw=0.5, color="black")
+        for b in starts[1:]:
+            ax.axhline(b, color="red", lw=0.6, linestyle="--")
+        ax.set_title(col, fontsize=9)
+        ax.grid(alpha=0.3)
+
+    ax_l = axes[-1]
+    code = d[LITHO_COL].map({name: i for i, name in enumerate(LITHO_ORDER)})
+    assert code.notna().all(), "lithology not in LITHO_ORDER"
+    cmap = plt.get_cmap("tab10", len(LITHO_ORDER))
+    ax_l.imshow(code.to_numpy().reshape(-1, 1), aspect="auto", cmap=cmap, vmin=0,
+                vmax=len(LITHO_ORDER) - 1, extent=[0, 1, n - 0.5, -0.5], interpolation="nearest")
+    for b in starts[1:]:
+        ax_l.axhline(b, color="white", lw=1.2)
+    ax_l.set_title(LITHO_COL, fontsize=9)
+    ax_l.set_xticks([])
+    ax_l.legend([plt.Rectangle((0, 0), 1, 1, color=cmap(i)) for i in range(len(LITHO_ORDER))],
+                [f"{i + 1}. {name}" for i, name in enumerate(LITHO_ORDER)],
+                fontsize=6, loc="upper left", bbox_to_anchor=(1.02, 1.0))
+
+    axes[0].set_ylim(n - 0.5, -0.5)                         # first well on top, depth downward
+    axes[0].set_yticks(mids)
+    axes[0].set_yticklabels(d[WELL_COL].iloc[starts].tolist(), fontsize=7)
+    axes[0].set_ylabel("Well (sorted by depth within well)")
+    for ax in axes[1:]:
+        ax.tick_params(labelleft=False)
+    fig.suptitle("Well-Log Track", fontsize=13)
+    fig.tight_layout()
+    fig.savefig(path, dpi=200)
+    plt.close(fig)
+
+
 # ---------- Fig. 1 draft ----------
 def pipeline_draft(path):
     steps = ["Raw logs\n7 wells, 65,190 rows",
@@ -179,6 +228,7 @@ def main():
             t.to_csv(PAPER_DIR / f"{name}.csv", index=False)
             t.to_excel(xw, sheet_name=name[:31], index=False)
     pipeline_draft(PAPER_DIR / "fig_pipeline_draft.png")
+    well_log_track(df, PAPER_DIR / "fig_well_log_track.png")
 
     cm = tables["raw_comissing"].set_index("Missing log")
     print(f"Co-missing P(DTSM missing | DTCO missing) = {cm.loc['DTCO', 'DTSM']:.2f}%")
