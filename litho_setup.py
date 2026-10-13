@@ -1,17 +1,22 @@
 """Config: multivariate MNAR imputation of well logs (LOWO validation)."""
 from pathlib import Path
 
-DATA_PATH = Path("data/litho_data.csv")   # EDIT: .csv or .xlsx, one row per depth sample
+DATA_PATH = Path("data/data_raw.xlsx")    # raw NOPIMS logs, one sheet per well (sheet name = well)
 OUT_DIR = Path("results")
 
 # Column names in the data file (EDIT if different)
-WELL_COL = "WELL"
-LITHO_COL = "LITHO"
+WELL_COL = "WELL"                          # added from the sheet name
+LITHO_COL = "LITHOLOGY"
 TARGETS = ["RS", "NPHI", "RHOB"]           # logs to mask + impute
 PREDICTORS = ["GR", "DTCO", "DTSM", "RD"]  # always observed (assumption/limitation)
 ALL_COLS = PREDICTORS + TARGETS            # column order used in all arrays
 N_PRED = len(PREDICTORS)
 LOG10_COLS = ["RS"]                        # log10 before MinMax, 10**x on inverse
+
+# Preprocessing (same as RINENG part1): listwise deletion -> elbow class filter
+MIN_WELLS = 2        # a lithology class must occur in at least this many wells
+ELBOW_STEP = 10      # elbow threshold = midpoint of the largest drop, rounded to this step
+EXPECTED_SHAPE = (6811, 6, 6)   # (rows, wells, classes) after filtering; None to skip check
 
 # MNAR self-masking (componentwise, per lithology, per log)
 MASK_Q = 0.20        # tail = value <= q-quantile or >= (1-q)-quantile

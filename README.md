@@ -4,9 +4,15 @@ Targets (masked + imputed): RS, NPHI, RHOB. Predictors (always observed): GR, DT
 Methods: Mean, MICE, LightGBM (one regressor per target). Validation: leave-one-well-out.
 
 ## Setup
-1. Put the data in `data/litho_data.csv` (or edit `DATA_PATH` in `litho_setup.py`).
+1. Put the raw logs in `data/data_raw.xlsx` (one sheet per well, sheet name = well).
 2. Edit column names / LightGBM params in `litho_setup.py`.
 3. `pip install -r requirements.txt && python run_experiment.py`
+
+## Preprocessing (`part1_data.py`, same as RINENG part1)
+Raw sheets -> listwise deletion per well (all logs + lithology) -> keep lithology classes with
+more samples than the elbow threshold (midpoint of the largest drop in sorted class sizes,
+rounded to 10; = 130) and present in >= 2 wells. Result: 6,811 rows, 6 wells, 6 classes
+(checked against `EXPECTED_SHAPE`).
 
 ## Pipeline (per mask seed, per test well)
 1. Split LOWO -> fit MinMax on train (before masking), RS is log10-transformed first.
