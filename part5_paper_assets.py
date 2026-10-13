@@ -13,7 +13,7 @@ from part2_masking import mnar_mask
 PAPER_DIR = OUT_DIR / "paper"
 DEPTH_COL = "DEPTH"
 RAW_LOGS = PREDICTORS + TARGETS
-METHOD_ORDER = ["Mean", "LGBM-PredOnly", "LGBM-Direct", "LGBM-Chained"]
+METHOD_ORDER = ["Mean", "KNN", "MICE", "missForest", "LGBM"]
 RMSE_DEC = {"RS": 1, "NPHI": 2, "RHOB": 3}   # decimals in original units
 
 
@@ -218,7 +218,7 @@ def pipeline_draft(path):
              "LOWO split\n(6 folds)",
              "log10(RS),\nMinMax fit on train",
              f"MNAR self-masking\nRS, NPHI, RHOB\nq={MASK_Q}, {int(MASK_LEVEL * 100)}%, {len(MASK_SEEDS)} seeds",
-             "Fit imputer on\nmasked train\nMean / LGBM (PredOnly,\nDirect, Chained)",
+             "Fit imputer on\nmasked train\nMean / KNN / MICE /\nmissForest / LGBM",
              "Impute masked test,\ninverse MinMax, 10^RS",
              "Metrics on masked\ntest cells\nRMSE, MAE, nRMSE, R²"]
     fig, ax = plt.subplots(figsize=(7.2, 2.6))

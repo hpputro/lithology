@@ -1,11 +1,15 @@
 import warnings
 import numpy as np
+import lightgbm as lgb
 from lightgbm import LGBMRegressor
 from sklearn.experimental import enable_iterative_imputer  # noqa: F401
-from sklearn.impute import IterativeImputer
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.impute import IterativeImputer, KNNImputer
+from sklearn.model_selection import train_test_split
 from litho_setup import *
 
 warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", message=".*eval_set.*")
 
 
 class MeanImputer:
@@ -20,49 +24,14 @@ class MeanImputer:
         return out
 
 
-def _lgbm(seed):
-    return LGBMRegressor(**{**LGBM_PARAMS, "n_estimators": LGBM_N_EST}, random_state=seed)
-
-
-class LGBMImputer:
-    """One regressor per target, single pass, NaN handled natively.
-    use_targets=False -> predictors-only (no information from other logs).
-    use_targets=True  -> direct (features = predictors + the 2 other targets)."""
-    def __init__(self, seed=0, use_targets=True):
-        self.seed, self.use_targets = seed, use_targets
-
-    def _feats(self, j, n_cols):
-        if not self.use_targets:
-            return list(range(N_PRED))
-        return [c for c in range(n_cols) if c != j]
-
-    def fit(self, X):
-        self.models_ = {}
-        for j in range(N_PRED, X.shape[1]):
-            feats = self._feats(j, X.shape[1])
-            obs = ~np.isnan(X[:, j])
-            m = _lgbm(self.seed).fit(X[obs][:, feats], X[obs, j])
-            self.models_[j] = (m, feats)
-        return self
-
-    def transform(self, X):
-        out = X.copy()
-        for j, (m, feats) in self.models_.items():
-            miss = np.isnan(X[:, j])
-            if miss.any():
-                out[miss, j] = m.predict(X[miss][:, feats])  # features from X, not from out
-        return out
-
-
-class LGBMChainedImputer:
-    """Chained/iterative: IterativeImputer with LGBM as estimator. Imputed values are fed back
-    as features in the next round. Clipped to the training range (as before)."""
+class MICEImputer:
+    """IterativeImputer; imputed values clipped to the observed training range per column
+    (prevents divergence, which 10**RS would otherwise amplify)."""
     def __init__(self, seed=0):
         self.seed = seed
 
     def fit(self, X):
-        self.imp = IterativeImputer(estimator=_lgbm(self.seed), max_iter=CHAIN_MAX_ITER,
-                                    random_state=self.seed, initial_strategy="mean",
+        self.imp = IterativeImputer(max_iter=MICE_MAX_ITER, random_state=self.seed, sample_posterior=False,
                                     min_value=np.nanmin(X, axis=0), max_value=np.nanmax(X, axis=0))
         self.imp.fit(X)
         return self
@@ -71,8 +40,61 @@ class LGBMChainedImputer:
         return self.imp.transform(X)
 
 
+class KNNImputerW:
+    """KNNImputer: masked values = mean of the K nearest TRAIN rows (nan-euclidean distance
+    over the columns observed in both rows)."""
+    def fit(self, X):
+        self.imp = KNNImputer(n_neighbors=KNN_K).fit(X)
+        return self
+
+    def transform(self, X):
+        return self.imp.transform(X)
+
+
+class MissForestImputer:
+    """missForest-style: IterativeImputer with RandomForestRegressor, mean initialisation.
+    RF predictions stay within the training range, so no clipping is needed."""
+    def __init__(self, seed=0):
+        self.seed = seed
+
+    def fit(self, X):
+        rf = RandomForestRegressor(n_estimators=MF_N_EST, random_state=self.seed, n_jobs=-1)
+        self.imp = IterativeImputer(estimator=rf, max_iter=MF_MAX_ITER, random_state=self.seed,
+                                    initial_strategy="mean")
+        self.imp.fit(X)
+        return self
+
+    def transform(self, X):
+        return self.imp.transform(X)
+
+
+class LGBMImputer:
+    """One regressor per target; features = all other columns (NaN handled natively)."""
+    def __init__(self, seed=0):
+        self.seed = seed
+
+    def fit(self, X):
+        self.models_ = {}
+        for j in range(N_PRED, X.shape[1]):
+            feats = [c for c in range(X.shape[1]) if c != j]
+            obs = ~np.isnan(X[:, j])
+            Xtr, Xva, ytr, yva = train_test_split(X[obs][:, feats], X[obs, j],
+                                                  test_size=VAL_SIZE, random_state=self.seed)
+            m = LGBMRegressor(**LGBM_PARAMS, random_state=self.seed)
+            m.fit(Xtr, ytr, eval_set=[(Xva, yva)],
+                  callbacks=[lgb.early_stopping(EARLY_STOP, verbose=False)])
+            self.models_[j] = (m, feats)
+        return self
+
+    def transform(self, X):
+        out = X.copy()
+        for j, (m, feats) in self.models_.items():
+            miss = np.isnan(X[:, j])
+            if miss.any():
+                out[miss, j] = m.predict(X[miss][:, feats])  # single pass, features from X
+        return out
+
+
 def make_imputers(seed):
-    return {"Mean": MeanImputer(),
-            "LGBM-PredOnly": LGBMImputer(seed, use_targets=False),
-            "LGBM-Direct": LGBMImputer(seed, use_targets=True),
-            "LGBM-Chained": LGBMChainedImputer(seed)}
+    return {"Mean": MeanImputer(), "KNN": KNNImputerW(), "MICE": MICEImputer(seed),
+            "missForest": MissForestImputer(seed), "LGBM": LGBMImputer(seed)}
