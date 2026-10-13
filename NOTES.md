@@ -22,10 +22,10 @@
 - Validasi: LOWO (leave-one-well-out), 6 fold.
 - Masking MNAR componentwise (self-masking) independen per log:
   - Per litologi dan per log: kandidat = nilai <= kuantil q atau >= kuantil 1-q, q = 0,20 (kapasitas tail 40%).
-  - Pilih acak 30% baris (dari baris litologi tsb) di antara kandidat. SATU level saja (30%).
+  - Pilih acak 40% baris (dari baris litologi tsb) di antara kandidat. SATU level saja (40%). Catatan: 40% = kapasitas tail (q=0,20), jadi hampir semua kandidat ter-mask.
   - Diterapkan ke train well dan test well, dengan RNG independen.
   - Alasan independen per log: kalau masking dikondisikan pada log lain, jadi MAR dan pembeda utama paper hilang.
-  - 3 seed masking (pada 30% pemilihan baris di dalam tail masih acak -> seed bermakna; menjawab saran Monte Carlo supervisor).
+  - 3 seed masking: 42, 43, 44; gambar masking hanya seed 42. Dengan 40% (= kapasitas tail) seed hanya mengubah ~1% sel yang di-mask [OPEN: naikkan q agar seed bermakna?].
   - k = jumlah log hilang per baris (0–3); laporkan proporsinya.
 - Metode: Mean, MICE (IterativeImputer), LGBM Regressor (satu model per target; fitur = 4 prediktor + 2 target lain; NaN native, single pass; early stopping, konfigurasi samakan dengan RINENG).
   - Listwise deletion hanya dinilai lewat jumlah baris tersisa (opsional).
@@ -34,7 +34,7 @@
 - Evaluasi: RMSE, MAE (satuan asli), nRMSE (dibagi range dataset), R^2; dari residual mentah yang di-pool lintas fold (bukan rata-rata per fold); rata-rata ± sd antar seed. Breakdown per k (1/2/3) dan per well. Tanpa uji signifikansi (deskriptif).
 
 ## 4. Rumusan masalah (versi dipangkas, 3 RQ)
-- RQ1: Seberapa akurat Mean/MICE/LGBM merekonstruksi RS, NPHI, RHOB pada well yang tidak dipakai training dengan masking MNAR 30%?
+- RQ1: Seberapa akurat Mean/MICE/LGBM merekonstruksi RS, NPHI, RHOB pada well yang tidak dipakai training dengan masking MNAR 40%?
 - RQ2: Bagaimana akurasi berubah menurut jumlah log yang hilang bersamaan dalam satu baris (k = 1, 2, 3)?
 - RQ3: Seberapa stabil hasil antar well (LOWO) dan antar realisasi masking (seed)?
 - (Versi 4 RQ sebelumnya memuat galat tail vs tengah distribusi; dipangkas. Di Discussion tulis error tail "tidak dievaluasi langsung".)
@@ -43,9 +43,9 @@
 Tidak perlu Nomenclature, Practical Implications, Data Availability terpisah (dilebur ke Discussion/Conclusion).
 - I. Introduction (~0,8 hal): P1 log sumur untuk interpretasi formasi, missing data umum; P2 mekanisme MCAR/MAR/MNAR, missingness lapangan sering serentak (co-missing 99,92%); P3 gap: studi imputasi umumnya univariat/random split, belum ada evaluasi multi-log di bawah MNAR dengan validasi well-level; P4 tujuan, 3 RQ, 2 poin kontribusi.
 - II. Related Works (~0,6 hal): A. imputasi data log sumur (statistik, ML, tree-based); B. mekanisme missingness dan masking MNAR, positioning terhadap Gama et al. 2025 dan Hallam et al. 2022, self-masking componentwise (Muzellec et al. 2020). Opsional tabel kecil perbandingan studi terdahulu.
-- III. Methodology (~2 hal): A. Dataset (satu paragraf pendek, rujuk RINENG under review + NOPIMS, jangan salin teks RINENG); B. LOWO + urutan pipeline tanpa leakage; C. masking MNAR multivariate (tail per litologi, q=0,20, 30%, independen per log, 3 seed, definisi k); D. metode imputasi; E. metrik.
+- III. Methodology (~2 hal): A. Dataset (satu paragraf pendek, rujuk RINENG under review + NOPIMS, jangan salin teks RINENG); B. LOWO + urutan pipeline tanpa leakage; C. masking MNAR multivariate (tail per litologi, q=0,20, 40%, independen per log, 3 seed (42–44), definisi k); D. metode imputasi; E. metrik.
 - IV. Results (~2 hal): A. hasil masking (proporsi k=1/2/3); B. akurasi per log × metode (RQ1); C. pengaruh k (RQ2); D. stabilitas antar well dan seed (RQ3).
-- V. Discussion (~0,6 hal): kapan LGBM unggul/sebanding MICE; error naik di tail (tree tidak ekstrapolasi, tulis "tidak dievaluasi langsung"); implikasi: rekonstruksi log sebelum interpretasi litologi, tahan klaim (tidak ada evaluasi downstream); limitations: 6 well satu basin, DTCO/DTSM/GR/RD selalu tersedia, satu level masking (30%), mekanisme simulasi, KNN/missForest/deep learning tidak dievaluasi.
+- V. Discussion (~0,6 hal): kapan LGBM unggul/sebanding MICE; error naik di tail (tree tidak ekstrapolasi, tulis "tidak dievaluasi langsung"); implikasi: rekonstruksi log sebelum interpretasi litologi, tahan klaim (tidak ada evaluasi downstream); limitations: 6 well satu basin, DTCO/DTSM/GR/RD selalu tersedia, satu level masking (40%), mekanisme simulasi, KNN/missForest/deep learning tidak dievaluasi.
 - VI. Conclusion (~0,3 hal): apa yang dievaluasi, 2–3 temuan kunci dengan angka, batas bukti (tested wells), future work: sonic juga hilang, ekstensi ke klasifikasi (journal).
 - References (~0,6 hal, 25–30 ref, IEEE bernomor).
 - Gambar/tabel: Gambar 1 diagram pipeline; Tabel I ringkasan dataset per well; Tabel II log (RS, NPHI, RHOB) × metode (RMSE, nRMSE, R^2, mean ± sd antar seed); Tabel III k × metode (nRMSE); Gambar 2 parity plot LGBM per log (3 panel). Opsional: sd per well, cukup satu kalimat.

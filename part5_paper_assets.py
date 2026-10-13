@@ -1,5 +1,5 @@
 """Paper tables (NOTES section 5) from the raw data and from results/ of run_experiment.py.
-Run after run_experiment.py. Output: results/paper/*.csv + paper_assets.xlsx + fig_pipeline_draft.png + fig_well_log_track.png + fig_masking_track_seed*.png."""
+Run after run_experiment.py. Output: results/paper/*.csv + paper_assets.xlsx + fig_pipeline_draft.png + fig_well_log_track.png + fig_masking_track_seed<FIG_SEED>.png."""
 import math
 import numpy as np
 import pandas as pd
@@ -268,7 +268,7 @@ def main():
             t.to_excel(xw, sheet_name=name[:31], index=False)
     pipeline_draft(PAPER_DIR / "fig_pipeline_draft.png")
     well_log_track(df, PAPER_DIR / "fig_well_log_track.png")
-    for seed in MASK_SEEDS:
+    for seed in [FIG_SEED]:
         M = test_masks(df, seed)
         n_mask = pred[(pred["seed"] == seed) & (pred["method"] == pred["method"].iloc[0])].groupby("log").size()
         assert (M.sum() == n_mask.reindex(TARGETS)).all(), "masks differ from run_experiment"

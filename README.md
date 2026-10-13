@@ -16,7 +16,7 @@ rounded to 10; = 130) and present in >= 2 wells. Result: 6,811 rows, 6 wells, 6 
 
 ## Pipeline (per mask seed, per test well)
 1. Split LOWO -> fit MinMax on train (before masking), RS is log10-transformed first.
-2. MNAR self-masking, independent per log: per lithology, 30% of rows drawn from the
+2. MNAR self-masking, independent per log: per lithology, 40% of rows drawn from the
    tails (<= q or >= 1-q quantile, q=0.20). Train and test masks use independent RNG streams.
 3. Fit imputers on masked train only; impute masked test.
 4. Inverse MinMax, then `10**RS`; keep only masked test cells.
@@ -38,4 +38,4 @@ All sheets also in `paper_assets.xlsx`.
 - `stability.csv`, `per_well_formatted.csv`: spread across wells and seeds (IV.D)
 - `fig_pipeline_draft.png`: draft of Fig. 1
 - `fig_well_log_track.png`: well-log track of the 6 wells (as RINENG part1)
-- `fig_masking_track_seed{0,1,2}.png`: same track with the test-well MNAR masks (red) and k per row
+- `fig_masking_track_seed42.png`: same track (FIG_SEED only) with the test-well MNAR masks (red) and k per row
