@@ -1,10 +1,10 @@
 Log,Method,R2 wells min,R2 wells max,R2 sd across wells,Worst well,nRMSE sd across wells,nRMSE sd across seeds,max nRMSE sd across seeds (per well)
-RS,Mean,-1.04,-0.03,0.37,PoseidonNorth1,0.048,0.0001,0.0003
-RS,MICE,-9.39,0.53,3.91,Torosa,0.043,0.0004,0.0155
-RS,LGBM,0.06,0.97,0.37,Poseidon2,0.045,0.0002,0.0008
-NPHI,Mean,-0.4,-0.01,0.15,PoseidonNorth1,0.038,0.0001,0.0038
-NPHI,MICE,0.19,0.66,0.17,Torosa,0.043,0.0003,0.0027
-NPHI,LGBM,0.23,0.65,0.16,Torosa,0.041,0.0013,0.0035
-RHOB,Mean,-1.06,-0.0,0.42,Kronos1,0.022,0.0001,0.0008
-RHOB,MICE,-0.21,0.46,0.23,Kronos1,0.025,0.0001,0.0019
-RHOB,LGBM,-0.24,0.32,0.21,Kronos1,0.024,0.0002,0.0015
+RS,Mean,-1.5,-0.03,0.56,PoseidonNorth1,0.044,0.0018,0.0083
+RS,MICE,-74.83,0.27,30.16,Torosa,0.037,0.0063,0.0865
+RS,LGBM,-0.75,0.9,0.61,Torosa,0.038,0.0026,0.0113
+NPHI,Mean,-0.39,-0.0,0.15,PoseidonNorth1,0.037,0.0011,0.0085
+NPHI,MICE,0.2,0.6,0.14,Torosa,0.037,0.0022,0.0137
+NPHI,LGBM,0.29,0.7,0.15,Torosa,0.033,0.0028,0.0132
+RHOB,Mean,-1.06,-0.0,0.42,Kronos1,0.022,0.0007,0.0049
+RHOB,MICE,-0.06,0.47,0.2,Kronos1,0.023,0.0019,0.0069
+RHOB,LGBM,-0.05,0.52,0.21,Kronos1,0.025,0.0008,0.0063

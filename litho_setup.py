@@ -22,9 +22,9 @@ EXPECTED_SHAPE = (6811, 6, 6)   # (rows, wells, classes) after filtering; None t
 
 # MNAR self-masking (componentwise, per lithology, per log)
 MASK_Q = 0.20        # tail = value <= q-quantile or >= (1-q)-quantile
-MASK_LEVEL = 0.40    # fraction of rows (per litho) masked, drawn from tails
+MASK_LEVEL = 0.30    # fraction of rows (per litho) masked, drawn from tails
 MASK_SEEDS = [42, 43, 44]
-FIG_SEED = 42        # seed shown in the masking figure
+FIG_SEED = MASK_SEEDS[0]   # only this seed is plotted (masking figure, parity plot)
 TEST_SEED_OFFSET = 10_000   # test-well mask uses seed + offset (independent of train)
 
 # LightGBM, same as RINENG handle_lgbm. subsample_freq is not set (default 0), as in RINENG,

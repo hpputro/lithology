@@ -46,8 +46,7 @@ def make_tables(pred, ranges, out):
     return t2, t3, pw
 
 
-def parity_plot(pred, out, method="LGBM", seed=None):
-    seed = pred["seed"].min() if seed is None else seed
+def parity_plot(pred, out, method="LGBM", seed=FIG_SEED):
     d = pred[(pred.method == method) & (pred.seed == seed)]
     fig, axes = plt.subplots(1, len(TARGETS), figsize=(11, 3.6))
     for ax, t in zip(axes, TARGETS):
