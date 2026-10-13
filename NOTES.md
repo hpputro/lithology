@@ -27,28 +27,32 @@
   - Alasan independen per log: kalau masking dikondisikan pada log lain, jadi MAR dan pembeda utama paper hilang.
   - 3 seed masking: 42, 43, 44 (pada 30% pemilihan baris di dalam tail masih acak -> seed bermakna; menjawab saran Monte Carlo supervisor). Gambar (masking track, parity plot) hanya seed 42 [FINAL].
   - k = jumlah log hilang per baris (0–3); laporkan proporsinya.
-- Metode: Mean, MICE (IterativeImputer), LGBM Regressor (satu model per target; fitur = 4 prediktor + 2 target lain; NaN native, single pass; early stopping, konfigurasi samakan dengan RINENG).
+- Metode [FINAL, revisi]: Mean + 3 strategi LGBM, semua dengan jumlah pohon TETAP (LGBM_N_EST=300, tanpa early stopping; beda dari RINENG, karena IterativeImputer tidak bisa early-stop, supaya semua varian setara; dipilih sekali, tidak di-tune pada test well). Parameter lain sama dengan RINENG.
+  - LGBM-PredOnly: satu model per target, fitur = 4 prediktor saja (tanpa informasi antar-target).
+  - LGBM-Direct: satu model per target, fitur = 4 prediktor + 2 target lain; NaN native, single pass.
+  - LGBM-Chained: IterativeImputer(estimator=LGBM, max_iter=CHAIN_MAX_ITER=15, initial_strategy=mean), di-clip ke rentang train. Tidak konvergen menurut kriteria sklearn (ConvergenceWarning di 18/18 run) -> sebut sebagai catatan.
+  - MICE (BayesianRidge) tidak lagi dievaluasi.
   - Listwise deletion hanya dinilai lewat jumlah baris tersisa (opsional).
   - KNN/missForest dan deep learning TIDAK dievaluasi (versi dipangkas); tulis di limitation.
 - Pipeline tanpa leakage: split LOWO -> log10(RS) -> MinMax di-fit pada train (sebelum masking, seperti RINENG) -> masking -> fit imputer hanya pada baris train teramati -> imputasi test -> inverse MinMax -> 10**RS -> simpan hanya sel test yang di-mask.
 - Evaluasi: RMSE, MAE (satuan asli), nRMSE (dibagi range dataset), R^2; dari residual mentah yang di-pool lintas fold (bukan rata-rata per fold); rata-rata ± sd antar seed. Breakdown per k (1/2/3) dan per well. Tanpa uji signifikansi (deskriptif).
 
-## 4. Rumusan masalah (versi dipangkas, 3 RQ)
-- RQ1: Seberapa akurat Mean/MICE/LGBM merekonstruksi RS, NPHI, RHOB pada well yang tidak dipakai training dengan masking MNAR 30%?
-- RQ2: Bagaimana akurasi berubah menurut jumlah log yang hilang bersamaan dalam satu baris (k = 1, 2, 3)?
-- RQ3: Seberapa stabil hasil antar well (LOWO) dan antar realisasi masking (seed)?
+## 4. Rumusan masalah (versi baru, tetap 3 RQ)
+- RQ1: Seberapa akurat strategi imputasi LGBM (predictors-only, direct, chained) dibanding Mean dalam merekonstruksi RS, NPHI, dan RHOB pada well yang tidak dipakai training, dengan masking MNAR 30%? Apakah memakai informasi antar-target memberi keuntungan?
+- RQ2: Bagaimana akurasi tiap strategi berubah menurut jumlah log yang hilang bersamaan (k = 1, 2, 3)?
+- RQ3: Seberapa stabil hasil antar well (LOWO) dan antar seed masking?
 - (Versi 4 RQ sebelumnya memuat galat tail vs tengah distribusi; dipangkas. Di Discussion tulis error tail "tidak dievaluasi langsung".)
 
 ## 5. Outline paper (IEEE conference)
 Tidak perlu Nomenclature, Practical Implications, Data Availability terpisah (dilebur ke Discussion/Conclusion).
 - I. Introduction (~0,8 hal): P1 log sumur untuk interpretasi formasi, missing data umum; P2 mekanisme MCAR/MAR/MNAR, missingness lapangan sering serentak (co-missing 99,92%); P3 gap: studi imputasi umumnya univariat/random split, belum ada evaluasi multi-log di bawah MNAR dengan validasi well-level; P4 tujuan, 3 RQ, 2 poin kontribusi.
 - II. Related Works (~0,6 hal): A. imputasi data log sumur (statistik, ML, tree-based); B. mekanisme missingness dan masking MNAR, positioning terhadap Gama et al. 2025 dan Hallam et al. 2022, self-masking componentwise (Muzellec et al. 2020). Opsional tabel kecil perbandingan studi terdahulu.
-- III. Methodology (~2 hal): A. Dataset (satu paragraf pendek, rujuk RINENG under review + NOPIMS, jangan salin teks RINENG); B. LOWO + urutan pipeline tanpa leakage; C. masking MNAR multivariate (tail per litologi, q=0,20, 30%, independen per log, 3 seed (42–44), definisi k); D. metode imputasi; E. metrik.
+- III. Methodology (~2 hal): A. Dataset (satu paragraf pendek, rujuk RINENG under review + NOPIMS, jangan salin teks RINENG); B. LOWO + urutan pipeline tanpa leakage; C. masking MNAR multivariate (tail per litologi, q=0,20, 30%, independen per log, 3 seed (42–44), definisi k); D. metode imputasi (Mean, LGBM-PredOnly/Direct/Chained; jumlah pohon tetap, bukan early stopping seperti RINENG); E. metrik.
 - IV. Results (~2 hal): A. hasil masking (proporsi k=1/2/3); B. akurasi per log × metode (RQ1); C. pengaruh k (RQ2); D. stabilitas antar well dan seed (RQ3).
-- V. Discussion (~0,6 hal): kapan LGBM unggul/sebanding MICE; error naik di tail (tree tidak ekstrapolasi, tulis "tidak dievaluasi langsung"); implikasi: rekonstruksi log sebelum interpretasi litologi, tahan klaim (tidak ada evaluasi downstream); limitations: 6 well satu basin, DTCO/DTSM/GR/RD selalu tersedia, satu level masking (30%), mekanisme simulasi, KNN/missForest/deep learning tidak dievaluasi.
+- V. Discussion (~0,6 hal): apakah informasi antar-target membantu (Direct/Chained vs PredOnly); error naik di tail (tree tidak ekstrapolasi, tulis "tidak dievaluasi langsung"); implikasi: rekonstruksi log sebelum interpretasi litologi, tahan klaim (tidak ada evaluasi downstream); limitations: 6 well satu basin, DTCO/DTSM/GR/RD selalu tersedia, satu level masking (30%), mekanisme simulasi, KNN/missForest/deep learning tidak dievaluasi.
 - VI. Conclusion (~0,3 hal): apa yang dievaluasi, 2–3 temuan kunci dengan angka, batas bukti (tested wells), future work: sonic juga hilang, ekstensi ke klasifikasi (journal).
 - References (~0,6 hal, 25–30 ref, IEEE bernomor).
-- Gambar/tabel: Gambar 1 diagram pipeline; Tabel I ringkasan dataset per well; Tabel II log (RS, NPHI, RHOB) × metode (RMSE, nRMSE, R^2, mean ± sd antar seed); Tabel III k × metode (nRMSE); Gambar 2 parity plot LGBM per log (3 panel). Opsional: sd per well, cukup satu kalimat.
+- Gambar/tabel: Gambar 1 diagram pipeline; Tabel I ringkasan dataset per well; Tabel II log (RS, NPHI, RHOB) × metode (RMSE, nRMSE, R^2, mean ± sd antar seed); Tabel III k × metode (nRMSE); Gambar 2 parity plot LGBM-Direct per log (3 panel, seed 42). Opsional: sd per well, cukup satu kalimat.
 
 ## 6. Risiko / hal yang dijaga
 1. Overlap dengan RINENG: RQ harus jelas beda ("akurasi rekonstruksi saat beberapa log hilang bersamaan"); cantumkan RINENG sebagai "under review"; deskripsi dataset/metode dipersingkat dan ditulis ulang.
@@ -58,12 +62,12 @@ Tidak perlu Nomenclature, Practical Implications, Data Availability terpisah (di
 5. Checklist bug: index mask tidak bergeser setelah reset_index (bug lama RINENG); inverse_transform sebelum 10**RS dan metrik RS di satuan asli; pooling dari residual mentah.
 
 ## 7. Status kode (folder multivariate_imputation/)
-- File: litho_setup.py (config), part1_data.py, part2_masking.py (mnar_mask, positional indexing), part3_imputation.py (Mean/MICE/LGBM), part4_evaluation.py (tabel + parity plot), run_experiment.py (loop seed × well × metode).
+- File: litho_setup.py (config), part1_data.py, part2_masking.py (mnar_mask, positional indexing), part3_imputation.py (Mean, LGBM-PredOnly/Direct/Chained), part4_evaluation.py (tabel + parity plot), run_experiment.py (loop seed × well × metode).
 - Sudah diuji end-to-end dengan data SINTETIS (bukan hasil riset). Belum dijalankan pada data asli.
-- MICE: imputasi di-clip ke rentang training per kolom, karena tanpa itu RS meledak setelah 10** (ekstrapolasi di ruang log). Sebutkan di bagian metode.
+- LGBM-Chained: imputasi di-clip ke rentang training per kolom (warisan dari MICE: tanpa clip RS bisa meledak setelah 10**). Sebutkan di bagian metode. Runtime ~21 s per fold (~7 menit total).
 - TODO:
   - [x] Set DATA_PATH dan nama kolom di litho_setup.py; jalankan pada data asli (preprocessing RINENG part1 sudah masuk part1_data.py).
-  - [x] Samakan LGBM_PARAMS/early stopping dengan RINENG [FINAL]: n_estimators=5000, lr=0.05, num_leaves=31, min_child_samples=20, subsample=0.8 (tanpa subsample_freq -> bagging tidak aktif, sama seperti RINENG), colsample_bytree=0.8, reg_alpha=0.1, reg_lambda=0.1, max_depth=-1, early stopping 50, validation = train_test_split acak 0.2 (bukan per well). MICE max_iter=15.
+  - [x] Samakan LGBM_PARAMS dengan RINENG [FINAL; direvisi: n_estimators diganti LGBM_N_EST=300 tetap, early stopping + validation split dihapus, MICE diganti strategi LGBM]. Asal RINENG: n_estimators=5000, lr=0.05, num_leaves=31, min_child_samples=20, subsample=0.8 (tanpa subsample_freq -> bagging tidak aktif, sama seperti RINENG), colsample_bytree=0.8, reg_alpha=0.1, reg_lambda=0.1, max_depth=-1, early stopping 50, validation = train_test_split acak 0.2 (bukan per well). MICE max_iter=15.
   - [x] RD tidak masuk LOG10_COLS (pakai config lama) [FINAL].
   - [x] Cek mask_stats.csv (proporsi k) dan sanity check hasil per log -> part5_paper_assets.py (results/paper/).
   - [ ] Draft Introduction (EN), lalu Methodology, Results, Discussion.

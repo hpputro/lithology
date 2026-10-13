@@ -1,7 +1,12 @@
 # Multivariate MNAR imputation of well logs (LOWO)
 
 Targets (masked + imputed): RS, NPHI, RHOB. Predictors (always observed): GR, DTCO, DTSM, RD.
-Methods: Mean, MICE, LightGBM (one regressor per target). Validation: leave-one-well-out.
+Methods: Mean + three LightGBM strategies (fixed `LGBM_N_EST` = 300 trees, no early stopping):
+- `LGBM-PredOnly`: one regressor per target, features = 4 predictors only
+- `LGBM-Direct`: one regressor per target, features = predictors + the 2 other targets (NaN native, single pass)
+- `LGBM-Chained`: `IterativeImputer` with LGBM estimator (`CHAIN_MAX_ITER` = 15 rounds, mean init, clipped to train range)
+
+Validation: leave-one-well-out.
 
 ## Setup
 1. Put the raw logs in `data/data_raw.xlsx` (one sheet per well, sheet name = well).
@@ -25,7 +30,7 @@ rounded to 10; = 130) and present in >= 2 wells. Result: 6,811 rows, 6 wells, 6 
 - `table_II_log_x_method.csv`: RMSE/MAE/nRMSE/R2 per log x method (mean, sd across seeds)
 - `table_III_k_x_method.csv`: nRMSE by number of co-missing logs k (mean over logs)
 - `per_well.csv`, `mask_stats.csv` (row share with k=0..3), `predictions_masked_cells.csv`
-- `fig_parity_LGBM.png` (FIG_SEED only)
+- `fig_parity_LGBM-Direct.png` (FIG_SEED only)
 
 Metrics are pooled from raw residuals across folds (not averaged per fold); nRMSE = RMSE / dataset range (original units).
 

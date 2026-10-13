@@ -27,13 +27,14 @@ MASK_SEEDS = [42, 43, 44]
 FIG_SEED = MASK_SEEDS[0]   # only this seed is plotted (masking figure, parity plot)
 TEST_SEED_OFFSET = 10_000   # test-well mask uses seed + offset (independent of train)
 
-# LightGBM, same as RINENG handle_lgbm. subsample_freq is not set (default 0), as in RINENG,
-# so LightGBM does not actually apply subsample=0.8 (bagging off).
-LGBM_PARAMS = dict(n_estimators=5000, learning_rate=0.05, num_leaves=31, max_depth=-1,
+# LightGBM, same as RINENG handle_lgbm except the number of trees (LGBM_N_EST below).
+# subsample_freq is not set (default 0), as in RINENG, so subsample=0.8 is inactive (bagging off).
+LGBM_PARAMS = dict(learning_rate=0.05, num_leaves=31, max_depth=-1,
                    min_child_samples=20, subsample=0.8, colsample_bytree=0.8,
                    reg_alpha=0.1, reg_lambda=0.1, n_jobs=-1, verbose=-1)
-EARLY_STOP = 50
-VAL_SIZE = 0.2       # random train_test_split (not grouped by well), as in RINENG
+# All LightGBM variants use the same FIXED number of trees (IterativeImputer cannot early-stop).
+# Different from RINENG (early stopping). Choose once, do not tune on test wells.
+LGBM_N_EST = 300
 
-# MICE (IterativeImputer, default BayesianRidge), as in RINENG
-MICE_MAX_ITER = 15
+# LGBM-Chained (IterativeImputer with LGBM estimator): number of imputation rounds
+CHAIN_MAX_ITER = 15
