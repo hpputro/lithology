@@ -1,5 +1,5 @@
 """Paper tables (NOTES section 5) from the raw data and from results/ of run_experiment.py.
-Run after run_experiment.py. Output: results/paper/*.csv + paper_assets.xlsx + fig_pipeline_draft.png + fig_well_log_track.png."""
+Run after run_experiment.py. Output: results/paper/*.csv + paper_assets.xlsx + fig_pipeline_draft.png + fig_well_log_track.png + fig_masking_track_seed*.png."""
 import math
 import numpy as np
 import pandas as pd
@@ -8,6 +8,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from litho_setup import *
 from part1_data import load_raw_sheets, preprocess
+from part2_masking import mnar_mask
 
 PAPER_DIR = OUT_DIR / "paper"
 DEPTH_COL = "DEPTH"
@@ -127,24 +128,47 @@ def per_well_fmt(pw):
 TRACK_LOGS = ["GR", "RHOB", "NPHI", "DTCO", "DTSM", "RS", "RD"]
 
 
-def well_log_track(df, path):
+def well_log_track(df, path, mask=None, title="Well-Log Track"):
     """All wells stacked top to bottom (each sorted by depth), one panel per log + lithology.
-    Vertical axis = sample order (rows removed by listwise deletion are skipped), not depth."""
-    d = df.sort_values([WELL_COL, DEPTH_COL]).reset_index(drop=True)
+    Vertical axis = sample order (rows removed by listwise deletion are skipped), not depth.
+    mask: optional bool DataFrame (columns TARGETS, same index as df); masked samples are drawn
+    as red dots on the target panels and a k panel (number of co-missing targets) is added."""
+    d = df.copy()
+    if mask is not None:
+        d[[f"_m_{t}" for t in TARGETS]] = mask[TARGETS].to_numpy()
+    d = d.sort_values([WELL_COL, DEPTH_COL]).reset_index(drop=True)
     n = len(d)
     idx = np.arange(n)
     starts = d[WELL_COL].ne(d[WELL_COL].shift()).to_numpy().nonzero()[0]
     bounds = list(starts) + [n]
     mids = [(bounds[i] + bounds[i + 1]) / 2 for i in range(len(starts))]
 
-    fig, axes = plt.subplots(1, len(TRACK_LOGS) + 1, figsize=(2.2 * (len(TRACK_LOGS) + 1), 14), sharey=True)
-    for ax, col in zip(axes[:-1], TRACK_LOGS):
+    extra = ["k"] if mask is not None else []
+    ratios = [1] * len(TRACK_LOGS) + [0.35] * len(extra) + [1]
+    fig, axes = plt.subplots(1, len(ratios), figsize=(2.2 * sum(ratios), 14), sharey=True,
+                             gridspec_kw={"width_ratios": ratios})
+    for ax, col in zip(axes[:len(TRACK_LOGS)], TRACK_LOGS):
         for s, e in zip(bounds[:-1], bounds[1:]):          # one line per well, no joins
             ax.plot(d[col].iloc[s:e], idx[s:e], lw=0.5, color="black")
+        if mask is not None and col in TARGETS:
+            m = d[f"_m_{col}"].to_numpy()
+            ax.scatter(d[col].to_numpy()[m], idx[m], s=2, color="red", zorder=3, linewidths=0)
+            col = f"{col} (masked {m.mean() * 100:.0f}%)"
         for b in starts[1:]:
             ax.axhline(b, color="red", lw=0.6, linestyle="--")
         ax.set_title(col, fontsize=9)
         ax.grid(alpha=0.3)
+
+    if mask is not None:
+        ax_k = axes[len(TRACK_LOGS)]
+        k = d[[f"_m_{t}" for t in TARGETS]].sum(axis=1).to_numpy()
+        kmap = matplotlib.colors.ListedColormap(["white", "#fcbba1", "#fb6a4a", "#a50f15"])
+        ax_k.imshow(k.reshape(-1, 1), aspect="auto", cmap=kmap, vmin=-0.5, vmax=3.5,
+                    extent=[0, 1, n - 0.5, -0.5], interpolation="nearest")
+        for b in starts[1:]:
+            ax_k.axhline(b, color="black", lw=0.8)
+        ax_k.set_title("k", fontsize=9)
+        ax_k.set_xticks([])
 
     ax_l = axes[-1]
     code = d[LITHO_COL].map({name: i for i, name in enumerate(LITHO_ORDER)})
@@ -156,9 +180,13 @@ def well_log_track(df, path):
         ax_l.axhline(b, color="white", lw=1.2)
     ax_l.set_title(LITHO_COL, fontsize=9)
     ax_l.set_xticks([])
-    ax_l.legend([plt.Rectangle((0, 0), 1, 1, color=cmap(i)) for i in range(len(LITHO_ORDER))],
-                [f"{i + 1}. {name}" for i, name in enumerate(LITHO_ORDER)],
-                fontsize=6, loc="upper left", bbox_to_anchor=(1.02, 1.0))
+    handles = [plt.Rectangle((0, 0), 1, 1, color=cmap(i)) for i in range(len(LITHO_ORDER))]
+    labels = [f"{i + 1}. {name}" for i, name in enumerate(LITHO_ORDER)]
+    if mask is not None:
+        handles += [plt.Line2D([], [], ls="", marker="o", ms=3, color="red")] + \
+                   [plt.Rectangle((0, 0), 1, 1, fc=kmap(i), ec="grey", lw=0.3) for i in range(4)]
+        labels += ["masked sample"] + [f"k = {i}" for i in range(4)]
+    ax_l.legend(handles, labels, fontsize=6, loc="upper left", bbox_to_anchor=(1.02, 1.0))
 
     axes[0].set_ylim(n - 0.5, -0.5)                         # first well on top, depth downward
     axes[0].set_yticks(mids)
@@ -166,10 +194,21 @@ def well_log_track(df, path):
     axes[0].set_ylabel("Well (sorted by depth within well)")
     for ax in axes[1:]:
         ax.tick_params(labelleft=False)
-    fig.suptitle("Well-Log Track", fontsize=13)
+    fig.suptitle(title, fontsize=13)
     fig.tight_layout()
     fig.savefig(path, dpi=200)
     plt.close(fig)
+
+
+def test_masks(df, seed):
+    """Test-well masks exactly as in run_experiment.py (each well masked on its own with
+    seed + TEST_SEED_OFFSET). Every well is the test well once, so one seed covers all rows."""
+    parts = []
+    for w in sorted(df[WELL_COL].unique()):
+        te = df[df[WELL_COL] == w]
+        M = mnar_mask(te.reset_index(drop=True), seed + TEST_SEED_OFFSET)
+        parts.append(pd.DataFrame(M, columns=TARGETS, index=te.index))
+    return pd.concat(parts).loc[df.index]
 
 
 # ---------- Fig. 1 draft ----------
@@ -229,6 +268,12 @@ def main():
             t.to_excel(xw, sheet_name=name[:31], index=False)
     pipeline_draft(PAPER_DIR / "fig_pipeline_draft.png")
     well_log_track(df, PAPER_DIR / "fig_well_log_track.png")
+    for seed in MASK_SEEDS:
+        M = test_masks(df, seed)
+        n_mask = pred[(pred["seed"] == seed) & (pred["method"] == pred["method"].iloc[0])].groupby("log").size()
+        assert (M.sum() == n_mask.reindex(TARGETS)).all(), "masks differ from run_experiment"
+        well_log_track(df, PAPER_DIR / f"fig_masking_track_seed{seed}.png", mask=M,
+                       title=f"MNAR masking of test wells (seed {seed}, q={MASK_Q}, {int(MASK_LEVEL * 100)}% per log)")
 
     cm = tables["raw_comissing"].set_index("Missing log")
     print(f"Co-missing P(DTSM missing | DTCO missing) = {cm.loc['DTCO', 'DTSM']:.2f}%")

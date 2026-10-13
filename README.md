@@ -38,3 +38,4 @@ All sheets also in `paper_assets.xlsx`.
 - `stability.csv`, `per_well_formatted.csv`: spread across wells and seeds (IV.D)
 - `fig_pipeline_draft.png`: draft of Fig. 1
 - `fig_well_log_track.png`: well-log track of the 6 wells (as RINENG part1)
+- `fig_masking_track_seed{0,1,2}.png`: same track with the test-well MNAR masks (red) and k per row
